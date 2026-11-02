@@ -73,6 +73,24 @@ bookingsRouter.post("/", requireAuth, async (req, res) => {
     return res.status(400).json({ error: errors.join(" ") });
   }
 
+  // Challenge 2 — double-booking prevention: reject the reservation when an
+  // active booking (pending or confirmed) already exists for the same studio
+  // on the same date.
+  const collision = await getDb()
+    .collection("bookings")
+    .findOne(
+      {
+        studioSlug: booking.studioSlug,
+        date: booking.date,
+        status: { $in: ["pending", "confirmed"] },
+      },
+      { projection: { _id: 1 } },
+    );
+  if (collision) {
+    return res.status(409).json({
+      error: `This studio is already booked for ${booking.date}. Please choose a different date or studio.`,
+    });
+  }
 
   const document = {
     ...booking,
