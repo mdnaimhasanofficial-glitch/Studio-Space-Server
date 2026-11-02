@@ -74,3 +74,36 @@ authRouter.post("/register", async (req, res) => {
 
   res.status(201).json({ token: signToken(user), user });
 });
+
+authRouter.post("/login", async (req, res) => {
+  const { email, password } = req.body ?? {};
+
+  const normalizedEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+
+  if (!normalizedEmail || typeof password !== "string" || !password) {
+    return res
+      .status(400)
+      .json({ error: "Email and password are required" });
+  }
+
+  const record = await getDb()
+    .collection("users")
+    .findOne({ email: normalizedEmail });
+
+  const passwordMatches = record
+    ? await bcrypt.compare(password, record.passwordHash)
+    : false;
+
+  if (!record || !passwordMatches) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  const user = {
+    id: record._id.toString(),
+    name: record.name,
+    email: record.email,
+  };
+
+  res.json({ token: signToken(user), user });
+});
