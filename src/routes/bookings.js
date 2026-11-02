@@ -149,3 +149,37 @@ bookingsRouter.post("/:id/cancel", requireAuth, async (req, res) => {
   const updated = await collection.findOne({ _id });
   res.json(withId(updated));
 });
+
+// Move a pending reservation to "confirmed" — the booker locks the slot in
+// (simulates payment). Same ownership rules as cancel.
+bookingsRouter.post("/:id/confirm", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid booking id" });
+  }
+
+  const collection = getDb().collection("bookings");
+  const _id = new ObjectId(id);
+  const doc = await collection.findOne({ _id });
+
+  if (!doc) {
+    return res.status(404).json({ error: "Booking not found" });
+  }
+  if (doc.userId !== req.user.sub) {
+    return res
+      .status(403)
+      .json({ error: "You can only confirm your own bookings" });
+  }
+  if (doc.status !== "pending") {
+    return res
+      .status(400)
+      .json({ error: "Only pending bookings can be confirmed" });
+  }
+
+  await collection.updateOne(
+    { _id },
+    { $set: { status: "confirmed", confirmedAt: new Date() } },
+  );
+  const updated = await collection.findOne({ _id });
+  res.json(withId(updated));
+});
