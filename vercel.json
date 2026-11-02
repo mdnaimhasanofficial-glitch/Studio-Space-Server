@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "studiospace-client/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "studiospace-server/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "studiospace-server/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "studiospace-client/$1"
+    }
+  ]
+}
